@@ -14,17 +14,19 @@ const getContractFilter = (id, type, excludeTerminated = false) => {
 };
 
 // Get a contract by ID with access control
-const getContractsById = async (req, res) => {
+const getContractById = async (req, res) => {
     const { id, type } = req.profile;
     const contractId = req.params.id;
 
-    if (id !== parseInt(contractId)) {
-        return res.status(403).json({ error: "Access denied for this contract" });
-    }
-
     try {
-        const contracts = await Contract.findAll({ where: getContractFilter(id, type) });
-        res.json(contracts);
+        const contract = await Contract.findOne({
+            where: { id: contractId, ...getContractFilter(id, type) }
+        });
+        if (!contract) {
+            return res.status(404).json({ error: "Contract not found or access denied" });
+        }
+
+        res.json(contract);
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Failed to fetch contracts" });
@@ -45,6 +47,6 @@ const getContracts = async (req, res) => {
 };
 
 module.exports = {
-    getContractsById,
+    getContractById,
     getContracts,
 };
