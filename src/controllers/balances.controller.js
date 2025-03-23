@@ -26,6 +26,7 @@ const depositMoney = async (req, res) => {
     if (!client) {
       return res.status(404).json({ error: "Client not found" });
     }
+    const clientBalance = client.balance;
 
     const sumOfUnpaidJobs = await Job.sum("price", {
       where: { paid: false },
@@ -47,7 +48,7 @@ const depositMoney = async (req, res) => {
       );
     });
 
-    return res.json({ message: "Deposit successful", balance: client.balance + amountToDeposit });
+    return res.json({ message: "Deposit successful", balance: clientBalance + amountToDeposit });
   } catch (error) {
     console.error("Deposit Error:", error);
     return res.status(500).json({ error: "Transaction failed" });
