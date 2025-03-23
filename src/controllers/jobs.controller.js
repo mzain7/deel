@@ -53,6 +53,10 @@ const payForJob = async (req, res) => {
         if (!job) return res.status(404).json({ error: "Job not found" });
         if (job.paid) return res.status(403).json({ error: "Job already paid" });
 
+        if (job.Contract.ClientId !== clientId) {
+            return res.status(403).json({ error: "Unauthorized: You can only pay for your own job" });
+        }
+
         const { ContractorId } = job.Contract;
 
         // Fetch contractor and client in a single query
