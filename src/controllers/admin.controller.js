@@ -5,64 +5,90 @@ const Profile = require("../models/profile");
 
 const getBestProfession = async (req, res) => {
   const { start, end } = req.query;
-  
+  if (!start || !end) {
+    return res
+      .status(400)
+      .json({ error: "start and end query parameters are required" });
+  }
+
   try {
-    const bestProfession = await Profile.findOne({
-      attributes: [
-        'profession',
-        [fn('COALESCE', fn('SUM', col('Contracts.Jobs.price')), 0), 'totalEarnings']
-      ],
+    const bestProfession = await Job.findAll({
+      where: {
+        paid: true,
+        paymentDate: { [Op.between]: [start, end] },
+      },
       include: {
         model: Contract,
-        as: 'Contracts',
+        required: true,
         attributes: [],
         include: {
-          model: Job,
+          model: Profile,
+          as: "Contractor",
+          required: true,
           attributes: [],
-          where: {
-            paid: true,
-            paymentDate: { [Op.between]: [start, end] },
-          },
+          where: { type: "contractor" },
         },
       },
-      group: ['profession'],
-      order: [[literal('totalEarnings'), 'DESC']],
+      attributes: [
+        [fn("SUM", col("price")), "total_earnings"],
+        [col("Contract.Contractor.profession"), "profession"],
+      ],
+      group: ["profession"],
+      order: [["total_earnings", "DESC"]],
       limit: 1,
       raw: true,
     });
 
-    res.json({ bestProfession: bestProfession || { profession: null, earnings: 0 } });
+    res.json({
+      bestProfession: bestProfession || { profession: null, earnings: 0 },
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
 const getBestClients = async (req, res) => {
   const { start, end, limit = 2 } = req.query;
+  if (!start || !end) {
+    return res
+      .status(400)
+      .json({ error: "start and end query parameters are required" });
+  }
 
   try {
-    const bestClients = await Profile.findAll({
-      attributes: [
-        'id',
-        [literal("firstName || ' ' || lastName"), 'fullName'], // Concatenates first and last name for SQLite
-        [fn('SUM', col('Contracts.Jobs.price')), 'totalPaid']
-      ],
+    const bestClients = await Job.findAll({
+      where: {
+        paid: true,
+        paymentDate: { [Op.between]: [start, end] },
+      },
       include: {
         model: Contract,
-        as: 'Contracts',
+        required: true,
         attributes: [],
         include: {
-          model: Job,
+          model: Profile,
+          as: "Client",
+          required: true,
           attributes: [],
-          where: {
-            paid: true,
-            paymentDate: { [Op.between]: [start, end] },
-          },
+          where: { type: "client" },
         },
       },
-      group: ['Profile.id'],
-      order: [[col('totalPaid'), 'DESC']],
+      attributes: [
+        [fn("SUM", col("price")), "totalPaid"],
+        [col("Contract.Client.id"), "id"],
+        [
+          fn(
+            "CONCAT",
+            col("Contract.Client.firstName"),
+            " ",
+            col("Contract.Client.lastName")
+          ),
+          "fullName",
+        ],
+      ],
+      group: ["Contract.Client.id"],
+      order: [[col("totalPaid"), "DESC"]],
       limit: parseInt(limit, 10),
       raw: true,
     });
@@ -70,7 +96,7 @@ const getBestClients = async (req, res) => {
     res.json({ bestClients });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
