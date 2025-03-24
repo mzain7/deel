@@ -1,108 +1,232 @@
-# DEEL BACKEND TASK
+# DEEL Backend
 
-💫 Welcome! 🎉
+This project is a Node.js/Express.js REST API. It simulates a job and contract management system where clients and contractors interact through contracts and jobs. The API includes endpoints for retrieving contracts and jobs, processing payments, depositing funds, and generating administrative reports on professions and top clients.
 
-This backend exercise involves building a Node.js/Express.js app that will serve a REST API. We imagine you should spend around 3 hours at implement this feature.
+## Table of Contents
 
-## Data Models
+- [Features](#features)
+- [Installation & Setup](#installation--setup)
+- [File Structure](#file-structure)
+- [API Endpoints](#api-endpoints)
+  - [Contracts](#contracts)
+  - [Jobs](#jobs)
+  - [Balances](#balances)
+  - [Admin Reports](#admin-reports)
+- [Database & ORM](#database--orm)
+- [Additional Notes](#additional-notes)
 
-> **All models are defined in src/model.js**
+## Features
 
-### Profile
+- **User Profiles:** Supports two types of profiles – clients and contractors.  
+- **Contracts:** Clients can create contracts with contractors;
+- **Jobs:** Contractors perform jobs for clients; jobs can be marked as paid.  
+- **Payment Processing:** Clients can pay for jobs (with balance validation) and funds are transferred to contractors.  
+- **Deposits:** Clients can deposit funds into their account but are limited to 25% of their total jobs-to-pay amount at deposit time.  
+- **Admin Reporting:**  
+  - **Best Profession:** Finds the profession that earned the most money during a given time period.  
+  - **Best Clients:** Returns a list of clients who have paid the most for jobs in a given time period (with an optional limit; default is 2).  
 
-A profile can be either a `client` or a `contractor`.
-clients create contracts with contractors. contractor does jobs for clients and get paid.
-Each profile has a balance property.
+## Installation & Setup
 
-### Contract
+### Prerequisites
 
-A contract between and client and a contractor.
-Contracts have 3 statuses, `new`, `in_progress`, `terminated`. contracts are considered active only when in status `in_progress`
-Contracts group jobs within them.
+- **Node.js:** Ensure you have the LTS version of Node.js installed ([download Node.js](https://nodejs.org/en/)).
+- **NPM:** Comes bundled with Node.js.
 
-### Job
+### Setup Steps
 
-contractor get paid for jobs by clients under a certain contract.
+1. **Install dependencies:**
 
-## Getting Set Up
+   ```bash
+   npm install
+   ```
 
-The exercise requires [Node.js](https://nodejs.org/en/) to be installed. We recommend using the LTS version.
+2. **Seed the Database:**
 
-1. Start by creating a local repository for this folder.
+   The project uses SQLite and seeds data into a local file (`database.sqlite3`). **Warning:** Running the seed command will drop any existing database.
 
-1. In the repo root directory, run `npm install` to gather all dependencies.
+   ```bash
+   npm run seed
+   ```
 
-1. Next, `npm run seed` will seed the local SQLite database. **Warning: This will drop the database if it exists**. The database lives in a local file `database.sqlite3`.
+3. **Start the Server:**
 
-1. Then run `npm start` which should start both the server and the React client.
+   The application uses `nodemon` to automatically restart when files change.
 
-❗️ **Make sure you commit all changes to the master branch!**
+   ```bash
+   npm start
+   ```
 
-## Technical Notes
+   The server will run on **http://localhost:3001/**.
 
-- The server is running with [nodemon](https://nodemon.io/) which will automatically restart for you when you modify and save a file.
+## File Structure
 
-- The database provider is SQLite, which will store data in a file local to your repository called `database.sqlite3`. The ORM [Sequelize](http://docs.sequelizejs.com/) is on top of it. You should only have to interact with Sequelize - **please spend some time reading sequelize documentation before starting the exercise.**
-
-- To authenticate users use the `getProfile` middleware that is located under src/middleware/getProfile.js. users are authenticated by passing `profile_id` in the request header. after a user is authenticated his profile will be available under `req.profile`. make sure only users that are on the contract can access their contracts.
-- The server is running on port 3001.
-
-## APIs To Implement
-
-Below is a list of the required API's for the application.
-
-1. **_GET_** `/contracts/:id` - This API is broken 😵! it should return the contract only if it belongs to the profile calling. better fix that!
-
-1. **_GET_** `/contracts` - Returns a list of contracts belonging to a user (client or contractor), the list should only contain non terminated contracts.
-
-1. **_GET_** `/jobs/unpaid` - Get all unpaid jobs for a user (**_either_** a client or contractor), for **_active contracts only_**.
-
-1. **_POST_** `/jobs/:job_id/pay` - Pay for a job, a client can only pay if his balance >= the amount to pay. The amount should be moved from the client's balance to the contractor balance.
-
-1. **_POST_** `/balances/deposit/:userId` - Deposits money into the the the balance of a client, a client can't deposit more than 25% his total of jobs to pay. (at the deposit moment)
-**Assumptions**: Amount to deposit will be the request body. Only authenticated client can deposit amount in its own balance (req.profile.id == req.params.userId). Total jobs to pay amount also includes unpaid jobs under terminated contracts. 
-
-1. **_GET_** `/admin/best-profession?start=<date>&end=<date>` - Returns the profession that earned the most money (sum of jobs paid) for any contactor that worked in the query time range.
-**Assumptions**: I have considered earn money as the money earned from jobs whose payments were done during the query time range. This API is an admin API, so I have omitted auth middleware for it.
-
-1. **_GET_** `/admin/best-clients?start=<date>&end=<date>&limit=<integer>` - returns the clients the paid the most for jobs in the query time period. limit query parameter should be applied, default limit is 2.
-**Assumptions**: I have considered paid money as the money paid to jobs whose payments were done during the query time range. This API is an admin API, so I have omitted auth middleware for it.
+Below is an overview of the key files and directories in the project:
 
 ```
- [
-    {
-        "id": 1,
-        "fullName": "Reece Moyer",
-        "paid" : 100.3
-    },
-    {
-        "id": 200,
-        "fullName": "Debora Martin",
-        "paid" : 99
-    },
-    {
-        "id": 22,
-        "fullName": "Debora Martin",
-        "paid" : 21
-    }
-]
+deel-be/
+├── src/
+│   ├── app.js                       # Main Express application setup
+│   ├── server.js                    # Starts the application server
+│   ├── config/
+│   │   ├── database.js              # Database configuration settings
+│   ├── controllers/
+│   │   ├── admin.controller.js      # Handles admin-related functionalities
+│   │   ├── balances.controller.js   # Handles balance-related operations
+│   │   ├── contracts.controller.js  # Handles contract-related logic
+│   │   ├── jobs.controller.js       # Manages job-related operations
+│   ├── middleware/
+│   │   ├── getProfile.js            # Middleware to retrieve user profile data
+│   ├── models/
+│   │   ├── contract.js              # Contract model defining schema and relations
+│   │   ├── job.js                   # Job model defining schema and relations
+│   │   ├── profile.js               # Profile model defining schema and relations
+│   ├── routes/
+│   │   ├── admin.routes.js          # Defines routes for admin-related operations
+│   │   ├── balances.routes.js       # Defines routes for balance-related actions
+│   │   ├── contracts.routes.js      # Defines routes for contract management
+│   │   ├── jobs.routes.js           # Defines routes for job functionalities
+├── scripts/
+│   ├── seedDb.js                    # Script to seed the database with initial data
+├── package.json                     # Contains project metadata and dependencies
 ```
 
-## Going Above and Beyond the Requirements
+## API Endpoints
 
-Given the time expectations of this exercise, we don't expect anyone to submit anything super fancy, but if you find yourself with extra time, any extra credit item(s) that showcase your unique strengths would be awesome! 🙌
+Below is a detailed description of each RESTful endpoint implemented in this project, including input parameters, output responses, and implementation.
 
-It would be great for example if you'd write some unit test / simple frontend demostrating calls to your fresh APIs.
+### Contracts
 
-## Submitting the Assignment
+#### GET `/contracts/:id`
 
-When you have finished the assignment, zip your repo (make sure to include .git folder) and send us the zip.
+- **Description:** Returns a specific contract if it belongs to the authenticated profile.
+- **Authentication:** Required – via the `getProfile` middleware; client or contractor must pass their `profile_id` in the request header.
+- **Input:**  
+  - **URL Parameter:** `id` (Contract ID)
+  - **Header:** `profile_id`
+- **Output:**  
+  - **Success:** Contract details in JSON format.
+  - **Error:** 404 if the contract does not belong to the user or does not exist.
+- **Implementation:**
+  The function checks if the contract belongs to the authenticated user (either as a client or contractor). If it does not exist or access is denied, a 404 error is returned.
 
-Thank you and good luck! 🙏
+#### GET `/contracts`
 
+- **Description:** Returns a list of contracts that belong to the authenticated user. Only contracts that are not terminated are included.
+- **Authentication:** Required – client or contractor must pass their `profile_id` in the request header.
+- **Input:**  
+  - **Header:** `profile_id`
+- **Output:**  
+  - **Success:** Returns an array of contracts in JSON format.
+  - **Error:** 500 if there is an issue retrieving contracts.
+- **Implementation:**
+  - Uses `getContractFilter` with `excludeTerminated=true` to ensure only active contracts are returned.
+  - Retrieves contracts from the database using `Contract.findAll()` with the applied filter.
+  - If an error occurs, a `500` response is returned.
 
-## Solutions Notes:
-- There are few assumptions I have assumed with some API implementations, have added those below the API guideline itself.
-- If given the time, I would have decoupled the controller layer with business logic by creating a service layer between controller and Data Access layer (Models). This will increase code readability, maintainability and modularity. 
-- If given the time, can add unit test cases to this codebase to avoid bugs or breaking changes merging in the future.
-- For concurrency control, I have used transactions for write operations. Isolation Level for transactions is "Read Committed".
+### Jobs
+
+#### GET `/jobs/unpaid`
+
+- **Description:** Retrieves all unpaid jobs for the authenticated user under contracts that are active (status `in_progress`).
+- **Authentication:** Required – client or contractor must pass their `profile_id` in the request header.
+- **Input:**  
+  - **Header:** `profile_id`
+- **Output:**  
+  - **Success:** Returns an array of unpaid jobs.
+  - **Error:**  
+    - `404` if no unpaid jobs are found.  
+    - `500` if there is a server error.
+- **Implementation Details:**
+  - Determines the user type (`contractor` or `client`) and filters contracts accordingly.
+  - Retrieves contracts that belong to the user and are in the `in_progress` state.
+  - Includes only jobs that are unpaid (`paid: false`).
+  - If no unpaid jobs exist, returns a `404` response.
+
+#### POST `/jobs/:job_id/pay`
+
+- **Description:** Allows a client to pay for a job if they have enough balance. The payment is transferred to the contractor.
+- **Authentication:** Clients only.
+- **Input:**
+  - **URL Parameter:** `job_id`
+  - **Header:** `profile_id`
+- **Output:**
+  - **Success:** Marks the job as paid and updates balances.
+  - **Errors:**
+    - `403` if the user is not a client or has insufficient balance.
+    - `404` if the job or related profiles are not found.
+    - `500` if the transaction fails.
+- **Implementation:**
+  - Ensures only clients can pay.
+  - Checks if the job exists and belongs to the client.
+  - Uses a transaction to update balances and mark the job as paid.
+
+### Balances
+
+#### POST `/balances/deposit/:userId`
+
+- **Description:** Clients can deposit funds into their account, limited to 25% of their unpaid job total.
+- **Authentication:** Only the client can deposit into their own account.
+- **Input:**
+  - **URL Parameter:** `userId` (must match the authenticated client)
+  - **Body:** `{ "amount": <deposit_amount> }`
+- **Output:**
+  - **Success:** Updates balance and returns new balance.
+  - **Errors:** `403` for unauthorized deposits or exceeding the limit, `400` for invalid amounts, `500` for transaction failures.
+- **Implementation:**
+  - Ensures the deposit is within the allowed limit.
+  - Uses a database transaction to update the client’s balance.
+
+### Admin Reports
+
+#### GET `/admin/best-profession?start=<date>&end=<date>`
+
+- **Description:** Returns the profession that earned the most money (sum of job payments) within a given date range.
+- **Authentication:** Admin access.
+- **Input:**
+  - **Query Parameters:**
+    - `start` (required) – Start date (`YYYY-MM-DD`).
+    - `end` (required) – End date (`YYYY-MM-DD`).
+- **Output:**
+  - **Success:** `{ "bestProfession": "profession_name", "totalEarnings": amount }`
+  - **Errors:** `400` if missing parameters, `500` for server errors.
+- **Implementation:**
+  - Finds all paid jobs in the specified period.
+  - Groups earnings by contractor profession.
+  - Returns the highest-earning profession.
+
+#### GET `/admin/best-clients?start=<date>&end=<date>&limit=<integer>`
+
+- **Description:** Returns the list of clients who paid the most for jobs within a given date range.
+- **Authentication:** Admin access.
+- **Input:**
+  - **Query Parameters:**
+    - `start` (required) – Start date (`YYYY-MM-DD`).
+    - `end` (required) – End date (`YYYY-MM-DD`).
+    - `limit` (optional, default: 2) – Number of top clients to return.
+- **Output:**
+  - **Success:** Array of top-paying clients with `id`, `fullName`, and `totalPaid`.
+  - **Errors:** `400` if missing parameters, `500` for server errors.
+- **Implementation:**
+  - Finds paid jobs in the given period.
+  - Aggregates payments per client.
+  - Returns the highest-paying clients, limited by the query parameter.
+
+## Database & ORM
+
+- **Database:** SQLite is used as the local database and stores its data in the file `database.sqlite3`.
+- **ORM:** Sequelize is used to manage database interactions. All data models for `Profile`, `Contract`, and `Job` are defined in `src/model.js`.
+- **Transactions:** Write operations (e.g., payments and deposits) use transactions with a "Read Committed" isolation level to ensure data integrity.
+
+## Additional Notes
+
+- **Authentication:**  
+  Users are authenticated by including a `profile_id` header with each request. The middleware `src/middleware/getProfile.js` is responsible for fetching the profile from the database and attaching it to `req.profile`.
+  
+- **Development Tools:**  
+  The server is set up with `nodemon` for automatic reloading during development.
+  
+- **Potential Improvements:**  
+  - A service layer to decouple business logic from controllers could improve maintainability.
+  - Unit tests and integration tests may be added to ensure future changes do not introduce regressions.
+  - Additional error handling and input validation could be implemented for enhanced security and robustness.
